@@ -1,0 +1,32 @@
+{
+  "name": "jsdelivr-purge",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/List-KR/jsdelivr-purge"
+  },
+  "bugs": {
+    "url": "https://github.com/List-KR/jsdelivr-purge/issues"
+  },
+  "homepage": "https://github.com/List-KR/jsdelivr-purge",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "ci": "tsx index.ts",
+    "lint": "tsc --noEmit && eslint ."
+  },
+  "dependencies": {
+    "@actions/core": "^1.10.1",
+    "@types/node": "^22.5.1",
+    "commander": "^12.1.0",
+    "es-toolkit": "^1.17.0",
+    "got": "^14.4.2",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4"
+  },
+  "devDependencies": {
+    "@types/npm-registry-fetch": "^8.0.7",
+    "eslint": "^9.9.1",
+    "typescript-eslint": "^8.3.0"
+  }
+}
