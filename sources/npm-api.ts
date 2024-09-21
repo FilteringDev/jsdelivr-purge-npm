@@ -1,5 +1,4 @@
 import * as Got from 'got'
-import * as ESToolkit from 'es-toolkit'
 
 export interface INpmPackageMetaData {
   // eslint-disable-next-line @typescript-eslint/naming-convention
