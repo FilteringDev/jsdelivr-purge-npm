@@ -4,15 +4,14 @@ export interface INpmPackageMetaData {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   name: string
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  'dist-tags': {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    latest: string
-  },
+  'dist-tags': Record<'latest' | string, TNpmTag>,
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  versions: Record<string, TNpmPackageVersionMeta>
+  versions: Record<TNpmTag | string, TNpmPackageVersionMeta>
   // eslint-disable-next-line @typescript-eslint/naming-convention
   time: Record<'created' | 'modified' | string, string>
 }
+
+export type TNpmTag = string
 
 export type TNpmPackageVersionMeta = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
