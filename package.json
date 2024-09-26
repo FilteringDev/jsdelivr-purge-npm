@@ -25,12 +25,14 @@
     "luxon": "^3.5.0",
     "tar": "^7.4.3",
     "tsx": "^4.19.0",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "unzipper": "^0.12.3"
   },
   "devDependencies": {
     "@types/luxon": "^3.4.2",
     "@types/npm-registry-fetch": "^8.0.7",
     "@types/semver": "^7.5.8",
+    "@types/unzipper": "^0.10.10",
     "eslint": "^9.9.1",
     "typescript-eslint": "^8.3.0"
   }

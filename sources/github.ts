@@ -1,5 +1,6 @@
 import * as GitHub from '@octokit/rest'
 import * as Luxon from 'luxon'
+import * as Unzipper from 'unzipper'
 import got from 'got'
 
 export type IHistoryManagerDataJSON = Record<string, string>
@@ -35,18 +36,19 @@ export class HistoryManager {
     return GHResponseRuns.data.total_count > 0
   }
 
-  private async RequestHistory(): Promise<IHistoryManagerDataJSON> {
+  private async RequestHistory() {
     if (!await this.CheckWorkflowRunExist()) {
       return null
     }
     const HistoryURL = await this.ListHistory()[0]
-    const HistoryData = await got(HistoryURL, {
+    const HistoryCompressedBuffer = await got(HistoryURL, {
       https: {
         minVersion: 'TLSv1.3',
         ciphers: 'TLS_AES_256_GCM_SHA384;TLS_CHACHA20_POLY1305_SHA256'
       },
       http2: true
-    }).json() as IHistoryManagerDataJSON
-    return HistoryData
+    }).buffer()
+    const HistoryData = (await Unzipper.Open.buffer(HistoryCompressedBuffer)).files.find(FilePara => FilePara.path.includes('dist-tag.json'))
+    return (await HistoryData.buffer()).toString() as unknown as IHistoryManagerDataJSON
   }
 }
