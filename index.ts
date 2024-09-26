@@ -13,6 +13,9 @@ Program.option('--gh-token <TOKEN>', 'GitHub token', '')
 	.option('--package <package>', 'A npm package. eg: owner/repo', '')
 	.option('--ci-workspace-path <PATH>', 'A path to the CI workspace.', '')
 	.option('--ci-action-path <PATH>', 'A path to the CI action.', '')
+	.option('--workflow-ref <WORKFLOW_REF>', 'A GitHub workflow ref. eg: refs/heads/master', '')
+	.option('--dist-tag <DIST_TAG>', 'A npm dist-tag. eg: latest', '')
+	.option('--repo <REPO>', 'A GitHub repository. eg: owner/repo', '')
 
 // Initialize Input of the options and export them.
 Program.parse()
@@ -25,10 +28,12 @@ const Options = Program.opts() as {
 	// eslint-disable-next-line @typescript-eslint/naming-convention
 	ciWorkspacePath: string
 	// eslint-disable-next-line @typescript-eslint/naming-convention
-	ciActionPath: string
+	ciActionPath: string,
+	// eslint-disable-next-line @typescript-eslint/naming-convention
+	workflowRef: string
+	// eslint-disable-next-line @typescript-eslint/naming-convention
+	distTag: string
+	// eslint-disable-next-line @typescript-eslint/naming-convention
+	repo: string
 }
 
-const NpmPackageMeta = await RequestNpmPackageMetaData(Options.package)
-const NpmPackageLatest = NpmPackageMeta['dist-tags'].latest
-
-for (const )
