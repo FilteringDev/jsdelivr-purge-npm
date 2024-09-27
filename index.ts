@@ -2,7 +2,11 @@ import * as Commander from 'commander'
 import * as Actions from '@actions/core'
 import * as Os from 'node:os'
 import * as Fs from 'node:fs'
+import PLimit from 'p-limit'
 import { RequestNpmPackageMetaData } from './sources/npm-api.js'
+import { HistoryManager } from './sources/github.js'
+import { PurgeRequestManager } from './sources/requests.js'
+import { FileManager } from './sources/file.js'
 
 Actions.info(`Running on ${Os.cpus()[0].model} with ${Os.cpus().length} threads/vCPUs.`)
 
@@ -37,3 +41,19 @@ const Options = Program.opts() as {
 	repo: string
 }
 
+const CurrrentTags = (await RequestNpmPackageMetaData(Options.package))['dist-tags']
+Fs.writeFileSync('/tmp/dist-tag.json', JSON.stringify(CurrrentTags))
+const OlderTags = await new HistoryManager({ Repo: Options.repo, GitHubToken: Options.ghToken, WorkflowRef: Options.workflowRef }).RequestHistory()
+
+const PLimitInstance = PLimit(Os.cpus().length)
+const PLimitJobs: Promise<void>[] = []
+for (const TargetTag of Options.distTag.split(' ')) {
+	PLimitJobs.push(PLimitInstance(async () => {
+		const ChangedFiles = await new FileManager(Options.repo, { A: CurrrentTags[TargetTag], B: OlderTags === null ? undefined : OlderTags[TargetTag] }, `${Options.ciWorkspacePath}/${TargetTag}`).Union()
+		const PurgeRequestManagerInstance = new PurgeRequestManager(Options.repo)
+		PurgeRequestManagerInstance.AddURLs(ChangedFiles, TargetTag)
+		PurgeRequestManagerInstance.Start()
+	}))
+}
+
+await Promise.all(PLimitJobs)

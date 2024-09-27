@@ -8,7 +8,7 @@ export type IHistoryManagerDataJSON = Record<string, string>
 export class HistoryManager {
   private GitHubInstance: InstanceType<typeof GitHub.Octokit> = null
 
-  constructor(private readonly Config: { Repo: string, GitHubToken: string, WorkflowRef: string, DistTags: string }) {
+  constructor(private readonly Config: { Repo: string, GitHubToken: string, WorkflowRef: string }) {
     this.GitHubInstance = new GitHub.Octokit({ auth: this.Config.GitHubToken })
   }
 
@@ -36,7 +36,7 @@ export class HistoryManager {
     return GHResponseRuns.data.total_count > 0
   }
 
-  private async RequestHistory() {
+  async RequestHistory() {
     if (!await this.CheckWorkflowRunExist()) {
       return null
     }
