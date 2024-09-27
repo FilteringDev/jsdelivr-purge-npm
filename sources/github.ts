@@ -31,7 +31,9 @@ export class HistoryManager {
     const GHResponseRuns = await this.GitHubInstance.actions.listWorkflowRunsForRepo({
       owner: this.Config.Repo.split('/')[0],
       repo: this.Config.Repo.split('/')[1],
-      workflow_id: this.Config.WorkflowRef
+      workflow_id: this.Config.WorkflowRef,
+      status: 'completed',
+      conclusion: 'success'
     })
     return GHResponseRuns.data.total_count > 0
   }
