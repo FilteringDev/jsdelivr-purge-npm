@@ -43,6 +43,9 @@ export class HistoryManager {
       return null
     }
     const HistoryURL = await this.ListHistory()[0]
+    if (typeof HistoryURL === 'undefined') {
+      return null
+    }
     const HistoryCompressedBuffer = await got(HistoryURL, {
       https: {
         minVersion: 'TLSv1.3',
