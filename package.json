@@ -1,14 +1,14 @@
 {
-  "name": "jsdelivr-purge",
-  "version": "1.0.2",
+  "name": "jsdelivr-purge-npm",
+  "version": "1.0.3",
   "repository": {
     "type": "git",
-    "url": "https://github.com/List-KR/jsdelivr-purge"
+    "url": "https://github.com/List-KR/jsdelivr-purge-npm"
   },
   "bugs": {
-    "url": "https://github.com/List-KR/jsdelivr-purge/issues"
+    "url": "https://github.com/List-KR/jsdelivr-purge-npm/issues"
   },
-  "homepage": "https://github.com/List-KR/jsdelivr-purge",
+  "homepage": "https://github.com/List-KR/jsdelivr-purge-npm",
   "license": "MIT",
   "type": "module",
   "scripts": {

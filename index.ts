@@ -49,7 +49,7 @@ const PLimitInstance = PLimit(Os.cpus().length)
 const PLimitJobs: Promise<void>[] = []
 for (const TargetTag of Options.distTag.split(' ')) {
 	PLimitJobs.push(PLimitInstance(async () => {
-		const ChangedFiles = await new FileManager(Options.repo, { A: CurrrentTags[TargetTag], B: OlderTags === null ? undefined : OlderTags[TargetTag] }, `${Options.ciWorkspacePath}/${TargetTag}`).Union()
+		const ChangedFiles = await new FileManager(Options.package, { A: CurrrentTags[TargetTag], B: OlderTags === null ? undefined : OlderTags[TargetTag] }, `${Options.ciWorkspacePath}/${TargetTag}`).Union()
 		const PurgeRequestManagerInstance = new PurgeRequestManager(Options.repo)
 		PurgeRequestManagerInstance.AddURLs(ChangedFiles, TargetTag)
 		PurgeRequestManagerInstance.Start()
