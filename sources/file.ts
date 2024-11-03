@@ -34,6 +34,7 @@ export class FileManager {
             'user-agent': 'jsdelivr-purge-npm'
           }
         }).buffer()
+        Fs.mkdirSync(this.WorkPath, { recursive: true })
         Fs.writeFileSync(`${this.WorkPath}/${this.Repo}-${Version}.tgz`, TarFile)
         Fs.mkdirSync(`${this.WorkPath}/${this.Repo}-${Version}`, { recursive: true })
         await Tar.extract({ file: `${this.WorkPath}/${this.Repo}-${Version}.tgz`, cwd: `${this.WorkPath}/${this.Repo}-${Version}` })
