@@ -54,7 +54,7 @@ async function GetCDNResponse(ID: string): Promise<CDNStatusResponseType> {
 
 	for (const [Key, Value] of Object.entries(ResponseRaw.paths)) {
 		if (Value.throttled) {
-			Actions.warning(`Throttled: ${Key.replace(/^\/gh\/[A-Za-z0-9-._]+\/[A-Za-z0-9-._]+(?=@)/, '')}`)
+			Actions.warning(`Throttled: ${Key}`)
 		}
 	}
 
