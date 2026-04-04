@@ -1,59 +1,140 @@
-import * as Commander from 'commander'
 import * as Actions from '@actions/core'
+import * as ESToolkit from 'es-toolkit'
+import * as Fs from 'node:fs/promises'
 import * as Os from 'node:os'
-import * as Fs from 'node:fs'
-import PLimit from 'p-limit'
-import { RequestNpmPackageMetaData } from './sources/npm-api.js'
+import * as Zod from 'zod'
+import { FilterArgumentsForOptions, ParseArgumentsAndOptions } from '@typescriptprime/parsing'
 import { HistoryManager } from './sources/github.js'
-import { PurgeRequestManager } from './sources/requests.js'
 import { FileManager } from './sources/file.js'
+import { RequestNpmPackageMetaData } from './sources/npm-api.js'
+import { PurgeRequestManager } from './sources/requests.js'
 
-Actions.info(`Running on ${Os.cpus()[0].model} with ${Os.cpus().length} threads/vCPUs.`)
+const RawCLIOptionsSchema = Zod.strictObject({
+  ghToken: Zod.string().optional(),
+  package: Zod.string().optional(),
+  ciWorkspacePath: Zod.string().optional(),
+  ciActionPath: Zod.string().optional(),
+  workflowRef: Zod.string().optional(),
+  distTag: Zod.string().optional(),
+  repo: Zod.string().optional()
+}).partial()
 
-const Program = new Commander.Command()
+type IRawCLIOptions = Zod.infer<typeof RawCLIOptionsSchema>
 
-// Set options.
-Program.option('--gh-token <TOKEN>', 'GitHub token', '')
-	.option('--package <package>', 'A npm package. eg: owner/repo', '')
-	.option('--ci-workspace-path <PATH>', 'A path to the CI workspace.', '')
-	.option('--ci-action-path <PATH>', 'A path to the CI action.', '')
-	.option('--workflow-ref <WORKFLOW_REF>', 'A GitHub workflow ref. eg: refs/heads/master', '')
-	.option('--dist-tag <DIST_TAG>', 'A npm dist-tag. eg: latest', '')
-	.option('--repo <REPO>', 'A GitHub repository. eg: owner/repo', '')
-
-// Initialize Input of the options and export them.
-Program.parse()
-
-const Options = Program.opts() as {
-	// eslint-disable-next-line @typescript-eslint/naming-convention
-	ghToken: string
-	// eslint-disable-next-line @typescript-eslint/naming-convention
-	package: string
-	// eslint-disable-next-line @typescript-eslint/naming-convention
-	ciWorkspacePath: string
-	// eslint-disable-next-line @typescript-eslint/naming-convention
-	ciActionPath: string,
-	// eslint-disable-next-line @typescript-eslint/naming-convention
-	workflowRef: string
-	// eslint-disable-next-line @typescript-eslint/naming-convention
-	distTag: string
-	// eslint-disable-next-line @typescript-eslint/naming-convention
-	repo: string
+type IRuntimeOptions = {
+  GhToken: string
+  Package: string
+  CiWorkspacePath: string
+  WorkflowRef: string
+  DistTag: string
+  Repo: string
 }
 
-const CurrrentTags = (await RequestNpmPackageMetaData(Options.package))['dist-tags']
-Fs.writeFileSync('/tmp/dist-tag.json', JSON.stringify(CurrrentTags))
-const OlderTags = await new HistoryManager({ Repo: Options.repo, GitHubToken: Options.ghToken, WorkflowRef: Options.workflowRef }).RequestHistory()
-
-const PLimitInstance = PLimit(Os.cpus().length)
-const PLimitJobs: Promise<void>[] = []
-for (const TargetTag of Options.distTag.split(' ')) {
-	PLimitJobs.push(PLimitInstance(async () => {
-		const ChangedFiles = await new FileManager(Options.package, { A: CurrrentTags[TargetTag], B: OlderTags === null ? undefined : OlderTags[TargetTag] }, `${Options.ciWorkspacePath}/${TargetTag}`).Union()
-		const PurgeRequestManagerInstance = new PurgeRequestManager(Options.package)
-		PurgeRequestManagerInstance.AddURLs(ChangedFiles, TargetTag)
-		PurgeRequestManagerInstance.Start()
-	}))
+function ResolveStringOption(...Values: Array<string | boolean | undefined>): string {
+  return Values.find((Value): Value is string => typeof Value === 'string' && Value.length > 0) ?? ''
 }
 
-await Promise.all(PLimitJobs)
+function RequireStringOption(Value: string, OptionName: string): string {
+  if (Value.length === 0) {
+    throw new Error(OptionName + ' is required')
+  }
+
+  return Value
+}
+
+async function ResolveOptions(): Promise<IRuntimeOptions> {
+  const ParsedCLIArguments = await ParseArgumentsAndOptions<Record<string, string | boolean>>(
+    FilterArgumentsForOptions(process.argv),
+    {
+      NamingConvention: ESToolkit.camelCase
+    }
+  )
+
+  const ParsedCLIOptions = RawCLIOptionsSchema.parse(ParsedCLIArguments.Options) as IRawCLIOptions
+
+  return {
+    GhToken: ResolveStringOption(
+      ParsedCLIOptions.ghToken,
+      process.env.GITHUB_TOKEN,
+      process.env.GH_TOKEN
+    ),
+    Package: RequireStringOption(
+      ResolveStringOption(ParsedCLIOptions.package, process.env.PACKAGE),
+      '--package or PACKAGE'
+    ),
+    CiWorkspacePath: ResolveStringOption(
+      ParsedCLIOptions.ciWorkspacePath,
+      process.env.CI_WORKSPACE_PATH,
+      process.cwd()
+    ),
+    WorkflowRef: ResolveStringOption(
+      ParsedCLIOptions.workflowRef,
+      process.env.WORKFLOW_REF,
+      process.env.WORKFLOWREF
+    ),
+    DistTag: RequireStringOption(
+      ResolveStringOption(
+        ParsedCLIOptions.distTag,
+        process.env.DIST_TAG,
+        process.env.DISTTAG
+      ),
+      '--dist-tag or DISTTAG'
+    ),
+    Repo: RequireStringOption(
+      ResolveStringOption(
+        ParsedCLIOptions.repo,
+        process.env.REPO,
+        process.env.GITHUB_REPOSITORY
+      ),
+      '--repo or REPO'
+    )
+  }
+}
+
+async function Main(): Promise<void> {
+  const Options = await ResolveOptions()
+  const CPUModel = Os.cpus()[0]?.model ?? 'Unknown CPU'
+
+  Actions.info('Running on ' + CPUModel + ' with ' + Os.availableParallelism() + ' threads/vCPUs.')
+
+  const CurrentTags = (await RequestNpmPackageMetaData(Options.Package))['dist-tags']
+  await Fs.writeFile('/tmp/dist-tag.json', JSON.stringify(CurrentTags))
+
+  const OlderTags = await new HistoryManager({
+    Repo: Options.Repo,
+    GitHubToken: Options.GhToken,
+    WorkflowRef: Options.WorkflowRef
+  }).RequestHistory()
+
+  const TargetTags = Options.DistTag.split(/\s+/).filter(Boolean)
+
+  await Promise.all(TargetTags.map(async (TargetTag) => {
+    const CurrentVersion = CurrentTags[TargetTag]
+
+    if (typeof CurrentVersion !== 'string') {
+      throw new Error('dist-tag not found: ' + TargetTag)
+    }
+
+    const PreviousVersion = OlderTags?.[TargetTag]
+    const Versions = PreviousVersion === CurrentVersion
+      ? { A: CurrentVersion }
+      : { A: CurrentVersion, B: PreviousVersion }
+
+    const ChangedFiles = await new FileManager(
+      Options.Package,
+      Versions,
+      Options.CiWorkspacePath + '/' + TargetTag
+    ).Union()
+
+    if (ChangedFiles.length === 0) {
+      Actions.info('No files changed for dist-tag ' + TargetTag)
+      return
+    }
+
+    const PurgeRequestManagerInstance = new PurgeRequestManager(Options.Package)
+    PurgeRequestManagerInstance.AddURLs(ChangedFiles, TargetTag)
+    await PurgeRequestManagerInstance.Start()
+  }))
+}
+
+await Main()

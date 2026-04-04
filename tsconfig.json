@@ -2,14 +2,16 @@
   "compilerOptions": {
     "outDir": "dist",
     "module": "NodeNext",
-    "target": "ES2022",
+    "target": "ES2024",
     "moduleResolution": "NodeNext",
     "removeComments": true,
     "alwaysStrict": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["node"]
   },
   "include": [
     "index.ts",
-    "sources/**/*.ts"
+    "sources/**/*.ts",
+    "tests/**/*.ts"
   ]
 }

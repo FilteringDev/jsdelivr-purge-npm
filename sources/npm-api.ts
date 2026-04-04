@@ -1,43 +1,51 @@
-import * as Got from 'got'
+import * as Zod from 'zod'
+import { RequestJSON } from './http.js'
 
-export interface INpmPackageMetaData {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  name: string
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  'dist-tags': Record<'latest' | string, TNpmTag>,
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  versions: Record<TNpmTag | string, TNpmPackageVersionMeta>
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  time: Record<'created' | 'modified' | string, string>
-}
+const NpmPackageVersionMetaSchema = Zod.strictObject({
+  name: Zod.string(),
+  version: Zod.string(),
+  dist: Zod.strictObject({
+    shasum: Zod.string(),
+    tarball: Zod.string(),
+    integrity: Zod.string()
+  })
+})
 
+const NpmPackageMetaDataSchema = Zod.strictObject({
+  name: Zod.string(),
+  'dist-tags': Zod.record(Zod.string(), Zod.string()),
+  versions: Zod.record(Zod.string(), NpmPackageVersionMetaSchema),
+  time: Zod.record(Zod.string(), Zod.string())
+})
+
+export type INpmPackageMetaData = Zod.infer<typeof NpmPackageMetaDataSchema>
 export type TNpmTag = string
+export type TNpmPackageVersionMeta = Zod.infer<typeof NpmPackageVersionMetaSchema>
 
-export type TNpmPackageVersionMeta = {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  name: string
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  version: string
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  dist: {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    shasum: string,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    tarball: string,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    integrity: string
-  }
+export type INpmAPIOptions = {
+  RegistryBaseURL?: string
 }
 
-export async function RequestNpmPackageMetaData(PackageName: string): Promise<INpmPackageMetaData> {
-  const GotResponse = await Got.got(`https://registry.npmjs.org/${PackageName}`, {
-    https: {
-      minVersion: 'TLSv1.2',
-      maxVersion: 'TLSv1.2',
-      ciphers: 'ECDHE-ECDSA-AES256-GCM-SHA384;ECDHE-ECDSA-CHACHA20-POLY1305'
-    },
-    http2: true
-  }).json()
-  return GotResponse as INpmPackageMetaData
+function EnsureTrailingSlash(Value: string): string {
+  return Value.endsWith('/') ? Value : Value + '/'
 }
 
+function EncodePackageNameForRegistry(PackageName: string): string {
+  return PackageName.replaceAll('/', '%2F')
+}
+
+function CreateRegistryURL(PackageName: string, RegistryBaseURL = 'https://registry.npmjs.org/'): URL {
+  return new URL(
+    EnsureTrailingSlash(RegistryBaseURL) + EncodePackageNameForRegistry(PackageName)
+  )
+}
+
+export async function RequestNpmPackageMetaData(
+  PackageName: string,
+  Options: INpmAPIOptions = {}
+): Promise<INpmPackageMetaData> {
+  return RequestJSON(
+    CreateRegistryURL(PackageName, Options.RegistryBaseURL),
+    NpmPackageMetaDataSchema
+  )
+}
