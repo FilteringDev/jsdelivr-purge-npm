@@ -2,6 +2,7 @@ import * as Actions from '@actions/core'
 import * as Os from 'node:os'
 import * as Fs from 'node:fs'
 import * as Path from 'node:path'
+import * as ESToolkit from 'es-toolkit'
 import { FilterArgumentsForOptions, ParseArgumentsAndOptions } from '@typescriptprime/parsing'
 import { Piscina } from 'piscina'
 import { fileURLToPath } from 'node:url'
@@ -64,23 +65,17 @@ function CreateDistTagFilePath(): string {
 }
 
 async function ParseOptions(Argv: string[]): Promise<OptionsType> {
-	const { Options } = await ParseArgumentsAndOptions<Record<string, string | boolean>>(FilterArgumentsForOptions(Argv), {
-		NamingConvention: FormatOptionName
-	})
+	const { Options } = await ParseArgumentsAndOptions<Record<string, string | boolean>>(FilterArgumentsForOptions(Argv))
 
 	return {
-		GitHubToken: GetOptionValue(Options, 'GitHubToken'),
+		GitHubToken: GetOptionValue(Options, 'GhToken'),
 		Package: GetOptionValue(Options, 'Package'),
-		CIWorkspacePath: GetOptionValue(Options, 'CIWorkspacePath'),
-		CIActionPath: GetOptionValue(Options, 'CIActionPath'),
+		CIWorkspacePath: GetOptionValue(Options, 'CiWorkspacePath'),
+		CIActionPath: GetOptionValue(Options, 'CiActionPath'),
 		WorkflowRef: GetOptionValue(Options, 'WorkflowRef'),
 		DistTag: GetOptionValue(Options, 'DistTag'),
 		Repo: GetOptionValue(Options, 'Repo')
 	}
-}
-
-function FormatOptionName(OptionName: string): string {
-	return OptionName.replace(/^--/, '').replaceAll(/-([a-z])/g, (FullMatch: string, Character: string) => Character.toUpperCase())
 }
 
 function GetOptionValue(Options: Record<string, string | boolean>, OptionName: string): string {
