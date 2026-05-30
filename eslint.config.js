@@ -1,25 +1,24 @@
-import tsPlugin from "@typescript-eslint/eslint-plugin"
-import tsParser from "@typescript-eslint/parser"
+import tseslint from 'typescript-eslint'
 
 const config = [
   {
-    files: ["**/*.ts", "**/*.tsx"], // Target TypeScript files
+    files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
-      parser: tsParser,
-      sourceType: "module",
+      parser: tseslint.parser,
+      sourceType: 'module',
     },
     plugins: {
-      "@typescript-eslint": tsPlugin,
+      '@typescript-eslint': tseslint.plugin,
     },
     rules: {
-      ...tsPlugin.configs.recommended.rules,
-      "semi": ["error", "never"],
-      "quotes": ["error", "single"],  
-      "@typescript-eslint/no-unused-vars": "warn",
+      ...tseslint.configs.recommended.rules,
+      'semi': ['error', 'never'],
+      'quotes': ['error', 'single'],
+      '@typescript-eslint/no-unused-vars': 'warn',
       '@typescript-eslint/naming-convention': ['error', {
-			selector: ['variableLike', 'parameterProperty', 'classProperty', 'typeProperty'],
-			format: ['PascalCase']
-		  }]
+        selector: ['variableLike', 'parameterProperty', 'classProperty', 'typeProperty'],
+        format: ['PascalCase']
+      }]
     }
   }
 ]

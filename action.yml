@@ -37,4 +37,4 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: dist-tag
-        path: /tmp/dist-tag.json
+        path: ${{ env.DIST_TAG_FILE }}

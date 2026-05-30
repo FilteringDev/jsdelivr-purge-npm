@@ -2,11 +2,22 @@ import * as Commander from 'commander'
 import * as Actions from '@actions/core'
 import * as Os from 'node:os'
 import * as Fs from 'node:fs'
-import PLimit from 'p-limit'
+import * as Path from 'node:path'
+import { Piscina } from 'piscina'
+import { fileURLToPath } from 'node:url'
 import { RequestNpmPackageMetaData } from './sources/npm-api.js'
-import { HistoryManager } from './sources/github.js'
-import { PurgeRequestManager } from './sources/requests.js'
-import { FileManager } from './sources/file.js'
+import { HistoryManager, type IHistoryManagerDataJSON } from './sources/github.js'
+
+export type TagWorkerDataType = {
+	Package: string
+	TargetTag: string
+	CurrentTags: Record<string, string>
+	OlderTags: IHistoryManagerDataJSON | null
+}
+
+const CurrentFilename = fileURLToPath(import.meta.url)
+const CurrentDirname = Path.dirname(CurrentFilename)
+const TagWorkerFilename = Path.join(CurrentDirname, 'sources', 'tag-worker.ts')
 
 Actions.info(`Running on ${Os.cpus()[0].model} with ${Os.cpus().length} threads/vCPUs.`)
 
@@ -42,18 +53,32 @@ const Options = Program.opts() as {
 }
 
 const CurrrentTags = (await RequestNpmPackageMetaData(Options.package))['dist-tags']
-Fs.writeFileSync('/tmp/dist-tag.json', JSON.stringify(CurrrentTags))
+const DistTagFilePath = CreateDistTagFilePath()
+Fs.writeFileSync(DistTagFilePath, JSON.stringify(CurrrentTags), { mode: 0o600 })
 const OlderTags = await new HistoryManager({ Repo: Options.repo, GitHubToken: Options.ghToken, WorkflowRef: Options.workflowRef }).RequestHistory()
+const PiscinaInstance = new Piscina({
+	filename: TagWorkerFilename,
+	maxThreads: Os.cpus().length
+})
 
-const PLimitInstance = PLimit(Os.cpus().length)
-const PLimitJobs: Promise<void>[] = []
-for (const TargetTag of Options.distTag.split(' ')) {
-	PLimitJobs.push(PLimitInstance(async () => {
-		const ChangedFiles = await new FileManager(Options.package, { A: CurrrentTags[TargetTag], B: OlderTags === null ? undefined : OlderTags[TargetTag] }, `${Options.ciWorkspacePath}/${TargetTag}`).Union()
-		const PurgeRequestManagerInstance = new PurgeRequestManager(Options.package)
-		PurgeRequestManagerInstance.AddURLs(ChangedFiles, TargetTag)
-		PurgeRequestManagerInstance.Start()
-	}))
+try {
+	await Promise.all(Options.distTag.split(' ').filter(TargetTag => TargetTag.length > 0).map(TargetTag => PiscinaInstance.run({
+		Package: Options.package,
+		TargetTag,
+		CurrentTags: CurrrentTags,
+		OlderTags
+	} satisfies TagWorkerDataType)))
+} finally {
+	await PiscinaInstance.destroy()
 }
 
-await Promise.all(PLimitJobs)
+function CreateDistTagFilePath(): string {
+	const DistTagDirectory = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'jsdelivr-purge-npm-'))
+	const DistTagFilePath = Path.join(DistTagDirectory, 'dist-tag.json')
+
+	if (typeof process.env.GITHUB_ENV !== 'undefined') {
+		Fs.appendFileSync(process.env.GITHUB_ENV, `DIST_TAG_FILE=${DistTagFilePath}${Os.EOL}`)
+	}
+
+	return DistTagFilePath
+}
