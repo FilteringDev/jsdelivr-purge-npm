@@ -34,7 +34,7 @@ runs:
       shell: bash
       working-directory: ${{ github.action_path }}
     - name: Remember the dist tag data
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: dist-tag
         path: ${{ env.DIST_TAG_FILE }}
