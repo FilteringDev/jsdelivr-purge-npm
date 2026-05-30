@@ -58,9 +58,7 @@ function CreateDistTagFilePath(): string {
 	const DistTagDirectory = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'jsdelivr-purge-npm-'))
 	const DistTagFilePath = Path.join(DistTagDirectory, 'dist-tag.json')
 
-	if (typeof process.env.GITHUB_ENV !== 'undefined') {
-		Fs.appendFileSync(process.env.GITHUB_ENV, `DIST_TAG_FILE=${DistTagFilePath}${Os.EOL}`)
-	}
+	Actions.exportVariable('DIST_TAG_FILE', DistTagFilePath)
 
 	return DistTagFilePath
 }
