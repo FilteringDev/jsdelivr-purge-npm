@@ -19,8 +19,8 @@
   "dependencies": {
     "@actions/core": "^3.0.1",
     "@octokit/rest": "^22.0.1",
+    "@typescriptprime/parsing": "^2.0.1",
     "@typescriptprime/securereq": "^2.0.0",
-    "commander": "^14.0.3",
     "es-toolkit": "^1.47.0",
     "luxon": "^3.7.2",
     "piscina": "^5.1.4",
