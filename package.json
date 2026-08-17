@@ -26,7 +26,7 @@
     "piscina": "^5.1.4",
     "tar": "^7.5.15",
     "tsx": "^4.22.3",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "unzipper": "^0.12.3"
   },
   "devDependencies": {
